@@ -23,6 +23,12 @@ connectDB();
 app.use(cors()); // Allows your React frontend to make requests to this backend
 app.use(express.json()); // Allows the server to accept JSON data in the req.body
 
+// Normalize redundant slashes in request URLs (e.g. //auth/login -> /auth/login)
+app.use((req, res, next) => {
+  req.url = req.url.replace(/\/{2,}/g, '/');
+  next();
+});
+
 // 5. Mount the Routes
 // Every route inside authRoutes will now start with /auth
 app.use('/auth', authRoutes);
