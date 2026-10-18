@@ -18,8 +18,13 @@ const protect = async (req, res, next) => {
 
       return next();
     } catch (error) {
-      console.error(error);
-      return res.status(401).json({ message: 'Not authorized, token failed or expired' });
+      console.error('Auth protect error:', error.message || error);
+      const message = error.name === 'TokenExpiredError'
+        ? 'Token expired, please log in again.'
+        : error.name === 'JsonWebTokenError'
+          ? 'Invalid token, please log in again.'
+          : 'Not authorized, token failed or expired.';
+      return res.status(401).json({ message });
     }
   }
 

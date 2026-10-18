@@ -1,6 +1,11 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
+const escapeRegex = (string) => String(string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const normalizeName = (name) => String(name || '').trim();
+const normalizeStatus = (status) => String(status || '').trim().toLowerCase();
+const normalizeRole = (role) => String(role || '').trim().toLowerCase();
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '12h' });
 };
@@ -8,7 +13,12 @@ const generateToken = (id) => {
 // @desc    Register a new user
 // @route   POST /api/auth/register
 const registerUser = async (req, res) => {
-  const { name, pin } = req.body; 
+  const name = normalizeName(req.body.name);
+  const pin = String(req.body.pin || '').trim();
+
+  if (!name || !pin) {
+    return res.status(400).json({ message: 'Please provide a valid name and PIN.' });
+  }
 
   try {
     const isFirstAccount = (await User.countDocuments({})) === 0;
@@ -35,13 +45,15 @@ const registerUser = async (req, res) => {
 // @desc    Authenticate user & get token
 // @route   POST /api/auth/login
 const login = async (req, res) => {
-  const { name, pin } = req.body;
+  const name = normalizeName(req.body.name);
+  const pin = String(req.body.pin || '').trim();
 
   try {
-    const user = await User.findOne({ name });
+    const user = await User.findOne({ name: new RegExp(`^${escapeRegex(name)}$`, 'i') });
 
     if (user && (await user.matchPin(pin))) {
-      if (user.status === 'pending') {
+      const status = normalizeStatus(user.status);
+      if (status === 'pending') {
         return res.status(403).json({ message: 'Your account is still pending admin approval.' });
       }
 
@@ -128,9 +140,9 @@ const updateUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.name = req.body.name || user.name;
-    user.role = req.body.role || user.role;
-    user.status = req.body.status || user.status;
+    user.name = normalizeName(req.body.name) || user.name;
+    user.role = normalizeRole(req.body.role) || user.role;
+    user.status = normalizeStatus(req.body.status) || user.status;
 
     // Admin resetting someone else's PIN
     if (req.body.newPin || req.body.confirmNewPin) {

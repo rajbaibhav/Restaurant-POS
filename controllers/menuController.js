@@ -20,7 +20,7 @@ const addMenuItem = async (req, res) => {
     const { name, description, price, category, isVeg, isAvailable } = req.body;
 
     // Grab the Cloudinary URL from the uploaded file via Multer
-    const imageUrl = req.file ? req.file.path : 'https://via.placeholder.com/150';
+    const imageUrl = req.file ? req.file.path : (req.body.image || 'https://via.placeholder.com/150');
 
     const menuItem = await MenuItem.create({
       name,
@@ -58,9 +58,9 @@ const updateMenuItem = async (req, res) => {
     }
 
     const updatedItem = await MenuItem.findByIdAndUpdate(
-      req.params.id, 
+      req.params.id,
       updateData,
-      { new: true, runValidators: true } 
+      { new: true, runValidators: true }
     );
 
     res.json(updatedItem);
